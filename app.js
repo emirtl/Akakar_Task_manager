@@ -14,9 +14,7 @@ app.use(express.json());
 app.use("/public/uploads", express.static(path.join("public/uploads")));
 
 async function main() {
-  await mongoose.connect(
-    `mongodb+srv://${process.env.MONGOOSE_USER}:${process.env.MONGOOSE_PASSWORD}@master.xebze3l.mongodb.net/${process.env.MONGOOSE_DATABSE_NAME}`
-  );
+  await mongoose.connect(`${process.env.MONGOOSE_URI}`);
 }
 
 main()
