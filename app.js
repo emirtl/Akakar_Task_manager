@@ -14,6 +14,7 @@ app.use(express.json());
 app.use("/public/uploads", express.static(path.join("public/uploads")));
 app.use((req, res, next) => {
   res.send("hello akakar");
+  return next();
 });
 
 async function main() {
