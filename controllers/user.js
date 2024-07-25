@@ -170,7 +170,7 @@ exports.login = async (req, res) => {
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       algorithm: "HS256",
-      expiresIn: 7200,
+      expiresIn: 18000,
     });
 
     if (!token) {

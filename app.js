@@ -21,7 +21,6 @@ async function main() {
   );
 }
 
-//amirmtolouie@gmail.com
 main()
   .then(() => console.log("connected to mongoose"))
   .catch((err) => console.log(err));
