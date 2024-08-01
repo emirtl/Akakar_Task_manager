@@ -73,7 +73,7 @@ exports.register = async (req, res) => {
       to: user.email,
       subject: "Email Verification",
       text: `your account has been created. please click the link below to activates your account
-              <a href="http://localhost:9000/api/v1/users/verifiedAccount/${token}">Activate</a>
+              <a href="https://akakar-task-app-ccaef9101887.herokuapp.com/api/v1/users/verifiedAccount/${token}">Activate</a>
            
       `,
     };
@@ -245,7 +245,7 @@ exports.inviteEmployee = async (req, res) => {
            NOTE: buy clicking the link below you will be submited
            to our website . you can change your username and password once you login and going to your account
       
-            http://localhost:9000/api/v1/users/employeeRegistration/${token}
+            https://akakar-task-app-ccaef9101887.herokuapp.com/api/v1/users/employeeRegistration/${token}
 
            username : ${shortenedUsername}
            password : ${createdPass}`,
