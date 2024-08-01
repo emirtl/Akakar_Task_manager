@@ -28,7 +28,7 @@ const storage = multer.diskStorage({
 });
 
 const router = express.Router();
-const controller = require("../controllers//task");
+const controller = require("../controllers/task");
 const isAuth = require("../middlewares/isAuth");
 const isEmployer = require("../middlewares/isEmployer");
 
