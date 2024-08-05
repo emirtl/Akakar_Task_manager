@@ -21,6 +21,8 @@ module.exports = (req, res, next) => {
     req.userId = decoadedToken.userId;
     req.userEmail = decoadedToken.email;
     req.userRole = decoadedToken.role;
+    console.log(req.userRole);
+
     next();
   } catch (err) {
     return res.status(401).json({ error: "Authorization Failed", err });

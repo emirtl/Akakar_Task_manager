@@ -12,6 +12,8 @@ const isEmployer = require("../middlewares/isEmployer");
 
 router.get("/getAll", isAuth, isAdmin, controller.users);
 
+router.get("/user/:id", isAuth, controller.user);
+
 router.post("/register", userRegistrationValidation, controller.register);
 
 router.post("/login", controller.login);

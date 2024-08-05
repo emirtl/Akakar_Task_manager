@@ -176,7 +176,8 @@ exports.login = async (req, res) => {
     if (!token) {
       return res.status(401).json({ error: "login failed, Unauthorized" });
     }
-    return res.status(200).json({ token });
+    const user = { ...payload, token };
+    return res.status(200).json({ user });
   } catch (error) {
     return res
       .status(500)
@@ -320,6 +321,28 @@ exports.employeeRegistration = async (req, res) => {
     return res
       .status(500)
       .json({ error: "something went wrong. please try later", error });
+  }
+};
+
+exports.user = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(401).json({ error: "id is not valid" });
+    }
+    const user = await User.findById(id).exec();
+    if (!user) {
+      return res
+        .status(500)
+        .json({ error: "loading users failed, please try later" });
+    }
+
+    return res.status(200).json({ user });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: "loading users failed. please try later", error });
   }
 };
 
