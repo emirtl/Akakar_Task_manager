@@ -13,6 +13,9 @@ const userSchema = new mongoose.Schema(
       required: true,
       minLength: 8,
     },
+    jobTitle: {
+      type: String,
+    },
     role: {
       type: [
         {
