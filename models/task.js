@@ -19,6 +19,14 @@ const taskSchema = new mongoose.Schema(
         message: "{VALUE} is not supported",
       },
     },
+    priority: {
+      type: String,
+      required: true,
+      enum: {
+        values: ["high", "medium", "low"],
+        message: "{VALUE} is not supported",
+      },
+    },
     user: {
       type: mongoose.Types.ObjectId,
       ref: "User",

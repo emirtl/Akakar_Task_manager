@@ -19,9 +19,10 @@ const transporter = nodemailer.createTransport({
 //employer
 exports.register = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, city, province, address, phone } =
+      req.body;
     if (!username || !email || !password) {
-      return res.status(401).json({ error: "validation failed, Unauthorized" });
+      return res.status(401).json({ error: "doğrulama başarısız" });
     }
 
     const errors = validationResult(req);
@@ -33,14 +34,14 @@ exports.register = async (req, res) => {
     if (existedUser) {
       return res.status(403).json({
         error:
-          "user with this credentials already exists. please change your email or password",
+          "Bu kullanıcı bilgilerine sahip kullanıcı zaten var. lütfen e-postanızı veya şifrenizi değiştirin",
       });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     if (!hashedPassword) {
       return res.status(403).json({
-        error: "something went wrong. please try later",
+        error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
       });
     }
 
@@ -48,6 +49,10 @@ exports.register = async (req, res) => {
       username,
       email,
       password: hashedPassword,
+      city,
+      province,
+      address,
+      phone,
       role: ["employer"],
     });
 
@@ -63,7 +68,7 @@ exports.register = async (req, res) => {
     if (!user) {
       return res
         .status(500)
-        .json({ error: "registration failed. please try later" });
+        .json({ error: "kayıt başarısız. lütfen daha sonra tekrar deneyin" });
     }
 
     const mailOptions = {
@@ -73,7 +78,7 @@ exports.register = async (req, res) => {
       },
       to: user.email,
       subject: "Email Verification",
-      text: `your account has been created. please click the link below to activates your account
+      text: `Hesabınız oluşturuldu. Hesabınızı etkinleştirmek için lütfen aşağıdaki bağlantıya tıklayın
               <a href="https://akakar-task-app-ccaef9101887.herokuapp.com/api/v1/users/verifiedAccount/${token}">Activate</a>
            
       `,
@@ -88,9 +93,10 @@ exports.register = async (req, res) => {
       }
     });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "registration failed. please try later", error });
+    return res.status(500).json({
+      error: "kayıt başarısız. lütfen daha sonra tekrar deneyin",
+      error,
+    });
   }
 };
 
@@ -98,50 +104,48 @@ exports.verifiedAccount = async (req, res) => {
   const { token } = req.params;
 
   if (!token) {
-    return res
-      .status(500)
-      .json({ error: "verification failed. please try later" });
+    return res.status(500).json({
+      error: "doğrulama başarısız oldu. lütfen daha sonra tekrar deneyin",
+    });
   }
+  // doğrulama başarısız oldu. lütfen daha sonra tekrar deneyin
   const decodedToken = jwt.verify(token, process.env.EMAIL_ACTIVATION_TOKEN);
   const id = decodedToken.userId;
   const registeredUser = await User.findById(id).exec();
   if (!registeredUser.token) {
     return res
       .status(401)
-      .json(
-        "no token found. please submit first to recieve a token or you already verified your account"
-      );
+      .json("Önce kayıt olun veya hesabınızı zaten doğruladınız");
   }
   if (!registeredUser) {
     return res
       .status(500)
-      .json({ error: "no user found. please register first" });
+      .json({ error: "Kullanıcı bulunamadı. lütfen önce kayıt olun" });
   }
 
   if (!decodedToken["userId"]) {
-    return res
-      .status(500)
-      .json({ error: "verification failed. please try later" });
+    return res.status(500).json({
+      error: "doğrulama başarısız oldu. lütfen daha sonra tekrar deneyin",
+    });
   }
 
   await User.findByIdAndUpdate(id, { isEmaiLVerified: true });
   registeredUser.token = "";
   await registeredUser.save();
-  return res.status(200).json({ message: "Email hsas been verified" });
+  return res.status(200).json({ message: "E-posta doğrulandı" });
 };
-
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
-      return res.status(401).json({ error: "validation failed, Unauthorized" });
+      return res.status(401).json({ error: "doğrulama başarısız oldu" });
     }
 
     const existedUser = await User.findOne({ email }).exec();
 
     if (!existedUser) {
       return res.status(401).json({
-        error: "user with these creadentials doesn't exist. Unauthorized",
+        error: "bu kimlik bilgilerine sahip kullanıcı mevcut değil",
       });
     }
 
@@ -152,14 +156,14 @@ exports.login = async (req, res) => {
 
     if (!isPasswordValid) {
       return res.status(401).json({
-        error: "user with these creadentials doesn't exist. Unauthorized",
+        error: "bu kimlik bilgilerine sahip kullanıcı mevcut değil",
       });
     }
 
     if (existedUser.isEmaiLVerified == false) {
       return res
         .status(401)
-        .json({ error: "Email verification failed, Unauthorized" });
+        .json({ error: "E-posta doğrulaması başarısız oldu, Yetkisiz" });
     }
 
     const payload = {
@@ -175,17 +179,17 @@ exports.login = async (req, res) => {
     });
 
     if (!token) {
-      return res.status(401).json({ error: "login failed, Unauthorized" });
+      return res.status(401).json({ error: "Giriş başarısız" });
     }
     const user = { ...payload, token };
     return res.status(200).json({ user });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "login failed. please try later", error });
+    return res.status(500).json({
+      error: "giriş başarısız oldu. lütfen daha sonra tekrar deneyin",
+      error,
+    });
   }
 };
-
 exports.inviteEmployee = async (req, res) => {
   const email = req.body.email;
   const id = req.params.id;
@@ -196,23 +200,23 @@ exports.inviteEmployee = async (req, res) => {
   if (!email) {
     return res
       .status(400)
-      .json({ error: "Email is needed in order to invite an employee" });
+      .json({ error: "Bir çalışanı davet etmek için e-posta gereklidir" });
   }
   if (!id) {
     return res.status(400).json({
-      error: "employer either has not been signed up or deleted his account",
+      error: "işveren ya kaydolmamış ya da hesabını silmiş",
     });
   }
   if (!mongoose.isValidObjectId(id)) {
-    return res.status(401).json({ error: "id is not valid" });
+    return res.status(401).json({ error: "kimlik/id geçerli değil" });
   }
 
   const user = await User.findOne({ _id: id }).exec();
   if (!user) {
-    return res.status(401).json({ error: "no employer exists" });
+    return res.status(401).json({ error: "bu işveren mevcut değil" });
   }
   if (!user.role.includes("employer")) {
-    return res.status(401).json({ error: "you are not an employer" });
+    return res.status(401).json({ error: "sen işveren değilsin" });
   }
 
   const shortenedUsername = email.split("@")[0];
@@ -244,8 +248,7 @@ exports.inviteEmployee = async (req, res) => {
     subject: `Invite letter from ${user.username}`,
     text: `you have been invited by ${user.username} to the Akakar Task Manager
       
-           NOTE: buy clicking the link below you will be submited
-           to our website . you can change your username and password once you login and going to your account
+           NOTE: Mi Task’a hoş geldiniz. Sizi Aşağıdaki linke tıklayarak uygulamaya giriş yapabilir ve şifrenizi belirleyebilirsiniz.
       
             https://akakar-task-app-ccaef9101887.herokuapp.com/api/v1/users/employeeRegistration/${token}
 
@@ -259,7 +262,7 @@ exports.inviteEmployee = async (req, res) => {
       return res.status(500).json({ error: err });
     }
     if (info) {
-      return res.status(201).json({ message: "email sent" });
+      return res.status(201).json({ message: "E-posta gönderildi" });
     }
   });
 };
@@ -268,33 +271,34 @@ exports.employeeRegistration = async (req, res) => {
   try {
     const token = req.params.token;
     if (!token) {
-      return res
-        .status(400)
-        .json({ error: "something went wrong. please try later", error });
+      return res.status(400).json({
+        error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+        error,
+      });
     }
+
     const decodedToken = jwt.verify(
       token,
       process.env.EMPLOYEE_REGISTRATION_TOKEN
     );
 
     if (!decodedToken) {
-      return res
-        .status(400)
-        .json({ error: "something went wrong. please try later" });
+      return res.status(400).json({
+        error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+      });
     }
 
     const employer = await User.findById(decodedToken.employerId).exec();
     if (!employer.token) {
-      return res
-        .status(400)
-        .json({ error: "no token found .employee already regitered" });
+      return res.status(400).json({ error: "çalışan zaten kayıtlı" });
     }
+    // çalışan zaten kayıtlı
 
     const hashedPass = bcrypt.hashSync(decodedToken.password, 10);
     if (!hashedPass) {
-      return res
-        .status(500)
-        .json({ error: "something went wrong. please try later" });
+      return res.status(500).json({
+        error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+      });
     }
     let user = new User({
       username: decodedToken.username,
@@ -311,17 +315,19 @@ exports.employeeRegistration = async (req, res) => {
     }
 
     if (!user) {
-      return res
-        .status(500)
-        .json({ error: "something went wrong. please try later" });
+      return res.status(500).json({
+        error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+      });
     }
     employer.token = "";
     await employer.save();
-    return res.status(201).json({ message: "employee has been registered" });
+    return res.status(201).json({ message: "çalışan kaydedildi" });
+    // çalışan kaydedildi
   } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "something went wrong. please try later", error });
+    return res.status(500).json({
+      error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+      error,
+    });
   }
 };
 
@@ -330,20 +336,21 @@ exports.user = async (req, res) => {
     const id = req.params.id;
 
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(401).json({ error: "id is not valid" });
+      return res.status(401).json({ error: "kimlik/id geçerli değil" });
     }
     const user = await User.findById(id).exec();
     if (!user) {
       return res
         .status(500)
-        .json({ error: "loading users failed, please try later" });
+        .json({ error: "kullanıcılar yüklenemedi, lütfen daha sonra deneyin" });
     }
 
     return res.status(200).json({ user });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "loading users failed. please try later", error });
+    return res.status(500).json({
+      error: "kullanıcılar yüklenemedi, lütfen daha sonra deneyin",
+      error,
+    });
   }
 };
 
@@ -353,13 +360,14 @@ exports.users = async (req, res) => {
     if (!users) {
       return res
         .status(500)
-        .json({ error: "loading users failed, please try later" });
+        .json({ error: "kullanıcılar yüklenemedi, lütfen daha sonra deneyin" });
     }
     return res.status(200).json({ users });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "loading users failed. please try later", error });
+    return res.status(500).json({
+      error: "kullanıcılar yüklenemedi, lütfen daha sonra deneyin",
+      error,
+    });
   }
 };
 // ----admin ----
@@ -369,16 +377,19 @@ exports.deleteUser = async (req, res) => {
   try {
     const id = req.params.id;
     if (!id) {
-      return res.status(400).json({ error: "user id is needed" });
+      return res.status(400).json({ error: "kullanıcı kimliği/id gerekli" });
     }
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ error: "user id is not valid" });
+      return res
+        .status(400)
+        .json({ error: "kullanıcı kimliği/id geçerli değil" });
     }
     const deletedUser = await User.findByIdAndDelete(id).exec();
     if (!deletedUser) {
-      return res
-        .status(500)
-        .json({ error: "user deletion failed. please try later" });
+      return res.status(500).json({
+        error:
+          "kullanıcı silme işlemi başarısız oldu. lütfen daha sonra tekrar deneyin",
+      });
     }
 
     if (deletedUser.role.includes("employee")) {
@@ -393,11 +404,13 @@ exports.deleteUser = async (req, res) => {
         await Task.findByIdAndDelete(task._id);
       });
     }
-    return res.status(200).json({ message: "user deleted" });
+    return res.status(200).json({ message: "kullanıcı silindi" });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "loading users failed. please try later", error });
+    return res.status(500).json({
+      error:
+        "kullanıcının silinmesi başarısız oldu. lütfen daha sonra tekrar deneyin",
+      error,
+    });
   }
 };
 
@@ -408,27 +421,33 @@ exports.upgradeToAdmin = async (req, res) => {
   try {
     const id = req.params.id;
     if (!id) {
-      return res.status(400).json({ error: "user id is needed" });
+      return res.status(400).json({ error: "kullanıcı kimliği/id gerekli" });
     }
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ error: "user id is not valid" });
+      return res
+        .status(400)
+        .json({ error: "kullanıcı kimliği/id geçerli değil" });
     }
     const user = await User.findById(id).exec();
     if (!user) {
-      return res.status(400).json({ error: "user not found" });
+      return res.status(400).json({ error: "Kullanıcı bulunamadı" });
     }
 
     if (user.role.includes("admin")) {
-      return res.status(400).json({ error: "User is already an admin" });
+      return res.status(400).json({ error: "Kullanıcı zaten bir yönetici" });
     }
 
     user.role.push("admin");
     await user.save();
-    return res.status(200).json({ message: "user upgraded to admin level" });
-  } catch (error) {
     return res
-      .status(500)
-      .json({ error: "upgrading to admin failed. please try later", error });
+      .status(200)
+      .json({ message: "kullanıcı yönetici düzeyine yükseltildi" });
+  } catch (error) {
+    return res.status(500).json({
+      error:
+        "yöneticiye yükseltme başarısız oldu. lütfen daha sonra tekrar deneyin",
+      error,
+    });
   }
 };
 
@@ -437,27 +456,31 @@ exports.degradeToUser = async (req, res) => {
   try {
     const id = req.params.id;
     if (!id) {
-      return res.status(400).json({ error: "user id is needed" });
+      return res.status(400).json({ error: "kullanıcı kimliği/id gerekli" });
     }
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ error: "user id is not valid" });
+      return res
+        .status(400)
+        .json({ error: "kullanıcı kimliği/id geçerli değil" });
     }
     const user = await User.findById(id).exec();
     if (!user) {
-      return res.status(400).json({ error: "user not found" });
+      return res.status(400).json({ error: "Kullanıcı bulunamadı" });
     }
 
     if (!user.role.includes("admin") && !user.role.includes("owner")) {
-      return res.status(400).json({ error: "User is not an admin" });
+      return res.status(400).json({ error: "Kullanıcı yönetici değil" });
     }
 
     user.role.pull("admin");
     await user.save();
-    return res.status(200).json({ message: "user is not an admin anymore" });
+    return res.status(200).json({ message: "kullanıcı artık yönetici değil" });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "upgrading to admin failed. please try later", error });
+    return res.status(500).json({
+      error:
+        "yöneticiye yükseltme başarısız oldu. lütfen daha sonra tekrar deneyin",
+      error,
+    });
   }
 };
 
@@ -467,20 +490,24 @@ exports.updateUserPassword = async (req, res) => {
     const id = req.params.id;
 
     if (!id) {
-      return res
-        .status(500)
-        .json({ error: "changing password failed. please try later" });
+      return res.status(500).json({
+        error:
+          "şifre değiştirme başarısız oldu. lütfen daha sonra tekrar deneyin",
+      });
     }
 
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(401).json({ error: "user id is not valid" });
+      return res
+        .status(401)
+        .json({ error: "kullanıcı kimliği/id geçerli değil" });
     }
 
     const previousPassword = req.body.password;
 
     if (!previousPassword) {
-      return res.status(400).json({ error: "previous password is needed" });
+      return res.status(400).json({ error: "önceki şifre gerekli" });
     }
+    // önceki şifre gerekli
     const existeduser = await User.findById(id).exec();
 
     const isMatch = await bcrypt.compare(
@@ -489,28 +516,29 @@ exports.updateUserPassword = async (req, res) => {
     );
 
     if (!isMatch) {
-      return res.status(500).json({ error: "password is wrong." });
+      return res.status(500).json({ error: "önceki şifre yanlış" });
     }
 
     const newPassword = req.body.newPassword;
 
     if (!newPassword) {
-      return res.status(400).json({ error: "new password is needed" });
+      return res.status(400).json({ error: "yeni şifre gerekli" });
     }
 
     const hashedNewPassword = bcrypt.hashSync(newPassword, 10);
 
     if (!hashedNewPassword) {
-      return res
-        .status(500)
-        .json({ error: "faield to change your password. please try later" });
+      return res.status(500).json({
+        error: "şifreniz değiştirilemedi. lütfen daha sonra tekrar deneyin",
+      });
     }
-
     await User.findByIdAndUpdate(id, { password: hashedNewPassword });
-    return res.status(200).json({ message: "password has been changed" });
+    return res.status(200).json({ message: "şifre değiştirildi" });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "changing password failed. please try later", error });
+    return res.status(500).json({
+      error:
+        "şifre değiştirme başarısız oldu. lütfen daha sonra tekrar deneyin",
+      error,
+    });
   }
 };

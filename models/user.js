@@ -16,6 +16,12 @@ const userSchema = new mongoose.Schema(
     jobTitle: {
       type: String,
     },
+    city: { type: String },
+    province: { type: String },
+    address: {
+      type: String,
+    },
+    phone: { type: String },
     role: {
       type: [
         {
