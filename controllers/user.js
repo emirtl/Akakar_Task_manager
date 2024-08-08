@@ -163,10 +163,11 @@ exports.login = async (req, res) => {
     if (existedUser.isEmaiLVerified == false) {
       return res
         .status(401)
-        .json({ error: "E-posta doğrulaması başarısız oldu, Yetkisiz" });
+        .json({ error: "lütfen önce hesabınızı doğrulayın" });
     }
 
     const payload = {
+      referals: existedUser.referals,
       userId: existedUser._id,
       username: existedUser.username,
       email: existedUser.email,
