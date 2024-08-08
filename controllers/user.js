@@ -141,7 +141,9 @@ exports.login = async (req, res) => {
       return res.status(401).json({ error: "doğrulama başarısız oldu" });
     }
 
-    const existedUser = await User.findOne({ email }).exec();
+    const existedUser = await User.findOne({ email })
+      .populate("referals")
+      .exec();
 
     if (!existedUser) {
       return res.status(401).json({
