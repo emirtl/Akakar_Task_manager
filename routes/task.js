@@ -40,14 +40,14 @@ router.post(
   "/insert",
   isAuth,
   isEmployer,
-  multer({ storage }).single("image"),
+  multer({ storage, limits: { fieldSize: 2 * 1024 * 1024 } }).single("image"),
   controller.insert
 );
 
 router.put(
   "/update/:id",
 
-  multer({ storage }).single("image"),
+  multer({ storage, limits: { fieldSize: 2 * 1024 * 1024 } }).single("image"),
   controller.update
 );
 
