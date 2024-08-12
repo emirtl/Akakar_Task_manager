@@ -27,6 +27,7 @@ const taskSchema = new mongoose.Schema(
         message: "{VALUE} is not supported",
       },
     },
+    rate: { type: Number, default: 2.5 },
     user: {
       type: mongoose.Types.ObjectId,
       ref: "User",

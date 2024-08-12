@@ -24,7 +24,7 @@ exports.getAll = async (req, res) => {
 
 exports.insert = async (req, res) => {
   try {
-    const { title, description, status, date, user, priority } = req.body;
+    const { title, description, status, date, user, priority, rate } = req.body;
     if (!title || !description || !status || !date || !user || !priority) {
       return res.status(400).json({ error: "task details needed" });
     }
@@ -64,6 +64,7 @@ exports.insert = async (req, res) => {
       date,
       user,
       priority,
+      rate,
     });
     task = await task.save();
     if (!task) {
@@ -81,7 +82,7 @@ exports.insert = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const { title, description, status, date, user, priority } = req.body;
+    const { title, description, status, date, user, priority, rate } = req.body;
     const allowedStatuses = ["incomplete", "in progress", "completed"];
 
     if (!allowedStatuses.includes(status)) {
@@ -116,6 +117,7 @@ exports.update = async (req, res) => {
         date,
         user,
         priority,
+        rate,
       },
       { new: true }
     );
