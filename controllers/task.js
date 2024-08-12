@@ -7,7 +7,7 @@ exports.getAll = async (req, res) => {
   try {
     const tasks = await Task.find().populate("user", "-password").exec();
     if (tasks.length <= 0) {
-      return res.status(200).json({ message: "no tasks found" });
+      return res.status(200).json({ message: "no task found" });
     }
     if (!tasks) {
       return res
@@ -24,8 +24,8 @@ exports.getAll = async (req, res) => {
 
 exports.insert = async (req, res) => {
   try {
-    const { title, description, status, date, user } = req.body;
-    if (!title || !description || !status || !date || !user) {
+    const { title, description, status, date, user, priority } = req.body;
+    if (!title || !description || !status || !date || !user || !priority) {
       return res.status(400).json({ error: "task details needed" });
     }
 
@@ -63,6 +63,7 @@ exports.insert = async (req, res) => {
       status,
       date,
       user,
+      priority,
     });
     task = await task.save();
     if (!task) {
@@ -80,7 +81,7 @@ exports.insert = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const { title, description, status, date, user } = req.body;
+    const { title, description, status, date, user, priority } = req.body;
     const allowedStatuses = ["incomplete", "in progress", "completed"];
 
     if (!allowedStatuses.includes(status)) {
@@ -114,6 +115,7 @@ exports.update = async (req, res) => {
         status,
         date,
         user,
+        priority,
       },
       { new: true }
     );
