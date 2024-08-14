@@ -16,6 +16,182 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+//new register
+exports.newRegister = async (req, res) => {
+  try {
+    const {
+      username,
+      email,
+      password,
+      city,
+      province,
+      address,
+      phone,
+      role,
+      companyCode,
+    } = req.body;
+
+    if (!username || !email || !password) {
+      return res.status(401).json({ error: "doğrulama başarısız" });
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() }); // Return 422 Unprocessable Entity with error details
+    }
+
+    const existedUser = await User.findOne({ email }).exec();
+    if (existedUser) {
+      return res.status(403).json({
+        error:
+          "Bu kullanıcı bilgilerine sahip kullanıcı zaten var. lütfen e-postanızı veya şifrenizi değiştirin",
+      });
+    }
+
+    // hashing password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    if (!hashedPassword) {
+      return res.status(403).json({
+        error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+      });
+    }
+
+    let user;
+
+    user = new User({
+      username,
+      email,
+      password: hashedPassword,
+      city,
+      province,
+      address,
+      phone,
+      role: [role],
+    });
+
+    if (role == "owner") {
+      const randomValueHex = (len) => {
+        return crypto
+          .randomBytes(Math.ceil(len / 2))
+          .toString("hex") // convert to hexadecimal format
+          .slice(0, len)
+          .toUpperCase(); // return required number of characters
+      };
+
+      const companyCode =
+        randomValueHex(4) + "-" + randomValueHex(4) + "-" + randomValueHex(4);
+
+      user.companyCode = companyCode;
+    } else {
+      const owner = await User.findOne({
+        role: "owner",
+        companyCode,
+      })
+        .populate("referals", "-password")
+        .exec();
+
+      if (!owner) {
+        return res.status(404).json({
+          error:
+            "bu şirket koduna sahip bulunamadı. lütfen şirket kodunuzu kontrol edin",
+        });
+      }
+      7;
+
+      user.companyCode = owner.companyCode;
+      user.referals.push(owner);
+      owner.referals.push(user);
+      await owner.save();
+    }
+
+    //email verification
+
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.EMAIL_ACTIVATION_TOKEN,
+      { algorithm: "HS256" }
+    );
+
+    user.token = token;
+
+    user = await user.save();
+
+    // const mailOptions = {
+    //   from: {
+    //     name: "Akakar Task Manager",
+    //     address: process.env.EMAIL_USER,
+    //   },
+    //   to: user.email,
+    //   subject: "E-posta Doğrulaması",
+    //   text: `Hesabınız oluşturuldu. Hesabınızı etkinleştirmek için lütfen aşağıdaki bağlantıya tıklayın
+    //       <a href="https://akakar-task-app-ccaef9101887.herokuapp.com/api/v1/users/verifiedAccount/${token}">Activate</a>
+    //         `,
+    // };
+
+    const mailOptions = {
+      from: {
+        name: "Akakar Task Manager",
+        address: process.env.EMAIL_USER,
+      },
+      to: user.email,
+      subject: "E-posta Doğrulaması",
+      text: `Hesabınız oluşturuldu. Hesabınızı etkinleştirmek için lütfen aşağıdaki bağlantıya tıklayın
+          <a href="https://akakar-task-app-ccaef9101887.herokuapp.com/api/v1/users/verifiedAccount/${token}"></a>
+            `,
+    };
+
+    await transporter.sendMail(mailOptions, (err, info) => {
+      if (err) {
+        console.log(err);
+        return res.status(500).json({ error: err });
+      }
+      if (info) {
+        return res.status(200).json({ user });
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: "kayıt başarısız. lütfen daha sonra tekrar deneyin",
+      error,
+    });
+  }
+};
+
+exports.newVerifiedAccount = async (req, res) => {
+  const { token } = req.params;
+
+  if (!token) {
+    return res.status(500).json({
+      error: "doğrulama başarısız oldu. lütfen daha sonra tekrar deneyin",
+    });
+  }
+  // doğrulama başarısız oldu. lütfen daha sonra tekrar deneyin
+  const decodedToken = jwt.verify(token, process.env.EMAIL_ACTIVATION_TOKEN);
+  const id = decodedToken.userId;
+  const registeredUser = await User.findById(id).exec();
+  if (!registeredUser.token) {
+    return res
+      .status(401)
+      .json("Önce kayıt olun veya hesabınızı zaten doğruladınız");
+  }
+  if (!registeredUser) {
+    return res
+      .status(500)
+      .json({ error: "Kullanıcı bulunamadı. lütfen önce kayıt olun" });
+  }
+
+  if (!decodedToken["userId"]) {
+    return res.status(500).json({
+      error: "doğrulama başarısız oldu. lütfen daha sonra tekrar deneyin",
+    });
+  }
+
+  await User.findByIdAndUpdate(id, { isEmaiLVerified: true });
+  registeredUser.token = "";
+  await registeredUser.save();
+  return res.status(200).json({ message: "E-posta doğrulandı" });
+};
+
 //employer
 exports.register = async (req, res) => {
   try {
@@ -77,7 +253,7 @@ exports.register = async (req, res) => {
         address: process.env.EMAIL_USER,
       },
       to: user.email,
-      subject: "Email Verification",
+      subject: "E-posta Doğrulaması",
       text: `Hesabınız oluşturuldu. Hesabınızı etkinleştirmek için lütfen aşağıdaki bağlantıya tıklayın
               <a href="https://akakar-task-app-ccaef9101887.herokuapp.com/api/v1/users/verifiedAccount/${token}">Activate</a>
            
@@ -134,6 +310,7 @@ exports.verifiedAccount = async (req, res) => {
   await registeredUser.save();
   return res.status(200).json({ message: "E-posta doğrulandı" });
 };
+
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -142,7 +319,7 @@ exports.login = async (req, res) => {
     }
 
     const existedUser = await User.findOne({ email })
-      .populate("referals")
+      .populate("referals", "-password")
       .exec();
 
     if (!existedUser) {
@@ -193,6 +370,7 @@ exports.login = async (req, res) => {
     });
   }
 };
+// to be removed
 exports.inviteEmployee = async (req, res) => {
   const email = req.body.email;
   const id = req.params.id;
@@ -270,6 +448,7 @@ exports.inviteEmployee = async (req, res) => {
   });
 };
 
+// to be removed
 exports.employeeRegistration = async (req, res) => {
   try {
     const token = req.params.token;
@@ -357,9 +536,40 @@ exports.user = async (req, res) => {
   }
 };
 
+exports.getAllCompanyUsers = async (req, res) => {
+  try {
+    const companyCode = req.params.companyCode; // user id
+
+    if (!companyCode) {
+      return res.status(401).json({ error: "kimlik/copmpanyCode gerekli" });
+    }
+
+    const users = await User.find({ companyCode }).exec();
+
+    if (users.length <= 0) {
+      return res.status(200).json({
+        message: "kullanıcı bulunamadı",
+      });
+    }
+
+    if (!users) {
+      return res.status(500).json({
+        error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+      });
+    }
+
+    return res.status(200).json({ users });
+  } catch (error) {
+    return res.status(500).json({
+      error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+      error,
+    });
+  }
+};
+
 exports.users = async (req, res) => {
   try {
-    const users = await User.find({}).exec();
+    const users = await User.find({}).populate("referals", "-password").exec();
     if (!users) {
       return res
         .status(500)

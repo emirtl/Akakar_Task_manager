@@ -29,9 +29,9 @@ exports.insert = async (req, res) => {
       return res.status(400).json({ error: "task details needed" });
     }
 
-    const employee = await User.findById(user).exec();
+    const employer = await User.findById(user).exec();
 
-    if (!employee) {
+    if (!employer) {
       return res.status(400).json({ error: "employee doesnt exists" });
     }
 

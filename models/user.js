@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
-    username: { type: String, required: true, minLength: 6 },
+    username: { type: String, minLength: 6 },
     email: {
       type: String,
       required: true,
@@ -13,6 +13,8 @@ const userSchema = new mongoose.Schema(
       required: true,
       minLength: 8,
     },
+    companyCode: { type: String },
+
     jobTitle: {
       type: String,
     },
@@ -27,7 +29,14 @@ const userSchema = new mongoose.Schema(
         {
           type: String,
           enum: {
-            values: ["employer", "employee", "admin", "owner"],
+            values: [
+              "employer",
+              "employee",
+              "admin",
+              "owner",
+              "majorOwner",
+              "majorAdmin",
+            ],
             message: "{VALUE} is not supported",
           },
         },

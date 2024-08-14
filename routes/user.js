@@ -12,9 +12,15 @@ const isEmployer = require("../middlewares/isEmployer");
 
 router.get("/getAll", isAuth, isAdmin, controller.users);
 
+router.get(
+  "/getAll-companyUsers/:companyCode",
+  isAuth,
+  controller.getAllCompanyUsers
+); // TODO: minor admin middleware to be added
+
 router.get("/user/:id", isAuth, controller.user);
 
-router.post("/register", userRegistrationValidation, controller.register);
+router.post("/register", userRegistrationValidation, controller.register); //TODO to be deleted
 
 router.post("/login", controller.login);
 
@@ -31,10 +37,18 @@ router.put("/degrade-to-user/:id", isAuth, isOwner, controller.degradeToUser);
 
 router.put("/change-password/:id", isAuth, controller.updateUserPassword);
 
-router.get("/verifiedAccount/:token", controller.verifiedAccount);
+router.get("/verifiedAccount/:token", controller.verifiedAccount); //TODO to be deleted
+
+router.get("/newVerifiedAccount/:token", controller.newVerifiedAccount);
 
 router.get("/employeeRegistration/:token", controller.employeeRegistration);
 
 router.delete("/delete/:id", isAuth, isEmployer, controller.deleteUser);
+
+router.post(
+  "/new-register",
+  userRegistrationValidation,
+  controller.newRegister
+); //*!  Should be as new register
 
 module.exports = router;
