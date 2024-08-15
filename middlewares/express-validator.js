@@ -1,14 +1,14 @@
 const { body } = require("express-validator");
 
 exports.userRegistrationValidation = [
-  body("username")
+  body("fullName")
     .trim()
     .not()
     .isEmpty()
     .withMessage("user cannot be empty.")
     .bail()
     .isLength({ min: 6, max: 20 })
-    .withMessage("Username must be between 6 and 20 characters."),
+    .withMessage("full name must be between 6 and 20 characters."),
   body("email")
     .trim()
     .not()

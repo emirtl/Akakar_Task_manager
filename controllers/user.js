@@ -17,10 +17,10 @@ const transporter = nodemailer.createTransport({
 });
 
 //new register
-exports.newRegister = async (req, res) => {
+exports.register = async (req, res) => {
   try {
     const {
-      username,
+      fullName,
       email,
       password,
       city,
@@ -31,7 +31,7 @@ exports.newRegister = async (req, res) => {
       companyCode,
     } = req.body;
 
-    if (!username || !email || !password) {
+    if (!fullName || !email || !password) {
       return res.status(401).json({ error: "doğrulama başarısız" });
     }
 
@@ -59,7 +59,7 @@ exports.newRegister = async (req, res) => {
     let user;
 
     user = new User({
-      username,
+      fullName,
       email,
       password: hashedPassword,
       city,
@@ -116,18 +116,6 @@ exports.newRegister = async (req, res) => {
 
     user = await user.save();
 
-    // const mailOptions = {
-    //   from: {
-    //     name: "Akakar Task Manager",
-    //     address: process.env.EMAIL_USER,
-    //   },
-    //   to: user.email,
-    //   subject: "E-posta Doğrulaması",
-    //   text: `Hesabınız oluşturuldu. Hesabınızı etkinleştirmek için lütfen aşağıdaki bağlantıya tıklayın
-    //       <a href="https://akakar-task-app-ccaef9101887.herokuapp.com/api/v1/users/verifiedAccount/${token}">Activate</a>
-    //         `,
-    // };
-
     const mailOptions = {
       from: {
         name: "Akakar Task Manager",
@@ -157,125 +145,6 @@ exports.newRegister = async (req, res) => {
   }
 };
 
-exports.newVerifiedAccount = async (req, res) => {
-  const { token } = req.params;
-
-  if (!token) {
-    return res.status(500).json({
-      error: "doğrulama başarısız oldu. lütfen daha sonra tekrar deneyin",
-    });
-  }
-  // doğrulama başarısız oldu. lütfen daha sonra tekrar deneyin
-  const decodedToken = jwt.verify(token, process.env.EMAIL_ACTIVATION_TOKEN);
-  const id = decodedToken.userId;
-  const registeredUser = await User.findById(id).exec();
-  if (!registeredUser.token) {
-    return res
-      .status(401)
-      .json("Önce kayıt olun veya hesabınızı zaten doğruladınız");
-  }
-  if (!registeredUser) {
-    return res
-      .status(500)
-      .json({ error: "Kullanıcı bulunamadı. lütfen önce kayıt olun" });
-  }
-
-  if (!decodedToken["userId"]) {
-    return res.status(500).json({
-      error: "doğrulama başarısız oldu. lütfen daha sonra tekrar deneyin",
-    });
-  }
-
-  await User.findByIdAndUpdate(id, { isEmaiLVerified: true });
-  registeredUser.token = "";
-  await registeredUser.save();
-  return res.status(200).json({ message: "E-posta doğrulandı" });
-};
-
-//employer
-exports.register = async (req, res) => {
-  try {
-    const { username, email, password, city, province, address, phone } =
-      req.body;
-    if (!username || !email || !password) {
-      return res.status(401).json({ error: "doğrulama başarısız" });
-    }
-
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(422).json({ errors: errors.array() }); // Return 422 Unprocessable Entity with error details
-    }
-
-    const existedUser = await User.findOne({ email }).exec();
-    if (existedUser) {
-      return res.status(403).json({
-        error:
-          "Bu kullanıcı bilgilerine sahip kullanıcı zaten var. lütfen e-postanızı veya şifrenizi değiştirin",
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    if (!hashedPassword) {
-      return res.status(403).json({
-        error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
-      });
-    }
-
-    let user = new User({
-      username,
-      email,
-      password: hashedPassword,
-      city,
-      province,
-      address,
-      phone,
-      role: ["employer"],
-    });
-
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.EMAIL_ACTIVATION_TOKEN,
-      { algorithm: "HS256" }
-    );
-
-    user.token = token;
-    user = await user.save();
-
-    if (!user) {
-      return res
-        .status(500)
-        .json({ error: "kayıt başarısız. lütfen daha sonra tekrar deneyin" });
-    }
-
-    const mailOptions = {
-      from: {
-        name: "Akakar Task Manager",
-        address: process.env.EMAIL_USER,
-      },
-      to: user.email,
-      subject: "E-posta Doğrulaması",
-      text: `Hesabınız oluşturuldu. Hesabınızı etkinleştirmek için lütfen aşağıdaki bağlantıya tıklayın
-              <a href="https://akakar-task-app-ccaef9101887.herokuapp.com/api/v1/users/verifiedAccount/${token}">Activate</a>
-           
-      `,
-    };
-    await transporter.sendMail(mailOptions, (err, info) => {
-      if (err) {
-        console.log(err);
-        return res.status(500).json({ error: err });
-      }
-      if (info) {
-        return res.status(201).json({ user });
-      }
-    });
-  } catch (error) {
-    return res.status(500).json({
-      error: "kayıt başarısız. lütfen daha sonra tekrar deneyin",
-      error,
-    });
-  }
-};
-
 exports.verifiedAccount = async (req, res) => {
   const { token } = req.params;
 
@@ -284,7 +153,6 @@ exports.verifiedAccount = async (req, res) => {
       error: "doğrulama başarısız oldu. lütfen daha sonra tekrar deneyin",
     });
   }
-  // doğrulama başarısız oldu. lütfen daha sonra tekrar deneyin
   const decodedToken = jwt.verify(token, process.env.EMAIL_ACTIVATION_TOKEN);
   const id = decodedToken.userId;
   const registeredUser = await User.findById(id).exec();
@@ -313,7 +181,7 @@ exports.verifiedAccount = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { fullName, email, password } = req.body;
     if (!email || !password) {
       return res.status(401).json({ error: "doğrulama başarısız oldu" });
     }
@@ -348,7 +216,7 @@ exports.login = async (req, res) => {
     const payload = {
       referals: existedUser.referals,
       userId: existedUser._id,
-      username: existedUser.username,
+      fullName: existedUser.fullName,
       email: existedUser.email,
       role: existedUser.role,
     };
@@ -366,148 +234,6 @@ exports.login = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       error: "giriş başarısız oldu. lütfen daha sonra tekrar deneyin",
-      error,
-    });
-  }
-};
-// to be removed
-exports.inviteEmployee = async (req, res) => {
-  const email = req.body.email;
-  const id = req.params.id;
-  const existedUser = await User.findOne({ email }).exec();
-  if (existedUser) {
-    return res.status(401).json({ error: "employee already exists" });
-  }
-  if (!email) {
-    return res
-      .status(400)
-      .json({ error: "Bir çalışanı davet etmek için e-posta gereklidir" });
-  }
-  if (!id) {
-    return res.status(400).json({
-      error: "işveren ya kaydolmamış ya da hesabını silmiş",
-    });
-  }
-  if (!mongoose.isValidObjectId(id)) {
-    return res.status(401).json({ error: "kimlik/id geçerli değil" });
-  }
-
-  const user = await User.findOne({ _id: id }).exec();
-  if (!user) {
-    return res.status(401).json({ error: "bu işveren mevcut değil" });
-  }
-  if (!user.role.includes("employer")) {
-    return res.status(401).json({ error: "sen işveren değilsin" });
-  }
-
-  const shortenedUsername = email.split("@")[0];
-  const buf = crypto.randomBytes(8);
-  const createdPass = buf.toString("hex");
-  const employer = await User.findById(id).exec();
-  const employeePayload = {
-    employerId: id,
-    username: shortenedUsername,
-    email,
-    password: createdPass,
-  };
-  const token = jwt.sign(
-    employeePayload,
-    process.env.EMPLOYEE_REGISTRATION_TOKEN,
-    {
-      algorithm: "HS256",
-    }
-  );
-  employer.token = token;
-  await employer.save();
-
-  const mailOptions = {
-    from: {
-      name: `Invite letter`,
-      address: process.env.EMAIL_USER,
-    },
-    to: email,
-    subject: `Invite letter from ${user.username}`,
-    text: `you have been invited by ${user.username} to the Akakar Task Manager
-      
-           NOTE: Mi Task’a hoş geldiniz. Sizi Aşağıdaki linke tıklayarak uygulamaya giriş yapabilir ve şifrenizi belirleyebilirsiniz.
-      
-            https://akakar-task-app-ccaef9101887.herokuapp.com/api/v1/users/employeeRegistration/${token}
-
-           username : ${shortenedUsername}
-           password : ${createdPass}`,
-  };
-
-  await transporter.sendMail(mailOptions, (err, info) => {
-    if (err) {
-      console.log(err);
-      return res.status(500).json({ error: err });
-    }
-    if (info) {
-      return res.status(201).json({ message: "E-posta gönderildi" });
-    }
-  });
-};
-
-// to be removed
-exports.employeeRegistration = async (req, res) => {
-  try {
-    const token = req.params.token;
-    if (!token) {
-      return res.status(400).json({
-        error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
-        error,
-      });
-    }
-
-    const decodedToken = jwt.verify(
-      token,
-      process.env.EMPLOYEE_REGISTRATION_TOKEN
-    );
-
-    if (!decodedToken) {
-      return res.status(400).json({
-        error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
-      });
-    }
-
-    const employer = await User.findById(decodedToken.employerId).exec();
-    if (!employer.token) {
-      return res.status(400).json({ error: "çalışan zaten kayıtlı" });
-    }
-    // çalışan zaten kayıtlı
-
-    const hashedPass = bcrypt.hashSync(decodedToken.password, 10);
-    if (!hashedPass) {
-      return res.status(500).json({
-        error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
-      });
-    }
-    let user = new User({
-      username: decodedToken.username,
-      email: decodedToken.email,
-      password: hashedPass,
-      role: "employee",
-      isEmaiLVerified: true,
-    });
-    user = await user.save();
-
-    if (employer.role.includes("employer")) {
-      employer.referals.push(user._id);
-      await employer.save();
-    }
-
-    if (!user) {
-      return res.status(500).json({
-        error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
-      });
-    }
-    employer.token = "";
-    await employer.save();
-    return res.status(201).json({ message: "çalışan kaydedildi" });
-    // çalışan kaydedildi
-  } catch (error) {
-    return res.status(500).json({
-      error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
       error,
     });
   }
@@ -567,6 +293,8 @@ exports.getAllCompanyUsers = async (req, res) => {
   }
 };
 
+//* get All Users in application
+
 exports.users = async (req, res) => {
   try {
     const users = await User.find({}).populate("referals", "-password").exec();
@@ -583,10 +311,11 @@ exports.users = async (req, res) => {
     });
   }
 };
-// ----admin ----
-// delete user by admin
 
-exports.deleteUser = async (req, res) => {
+//* ----admin ----
+//* delete user by majorAdmin
+
+exports.deleteUserByMajor = async (req, res) => {
   try {
     const id = req.params.id;
     if (!id) {
@@ -627,10 +356,10 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
-// ----- owner -----
-//upgradeToAdmin
+//* ----- owner -----
+//* upgradeToMajorAdmin
 
-exports.upgradeToAdmin = async (req, res) => {
+exports.upgradeToMajorAdmin = async (req, res) => {
   try {
     const id = req.params.id;
     if (!id) {
@@ -646,11 +375,11 @@ exports.upgradeToAdmin = async (req, res) => {
       return res.status(400).json({ error: "Kullanıcı bulunamadı" });
     }
 
-    if (user.role.includes("admin")) {
+    if (user.role.includes("majorAdmin")) {
       return res.status(400).json({ error: "Kullanıcı zaten bir yönetici" });
     }
 
-    user.role.push("admin");
+    user.role.push("majorAdmin");
     await user.save();
     return res
       .status(200)
@@ -664,8 +393,8 @@ exports.upgradeToAdmin = async (req, res) => {
   }
 };
 
-//degradeToUSer
-exports.degradeToUser = async (req, res) => {
+//* degradeMajorAdminToUser
+exports.degradeMajorAdminToUser = async (req, res) => {
   try {
     const id = req.params.id;
     if (!id) {
@@ -681,11 +410,11 @@ exports.degradeToUser = async (req, res) => {
       return res.status(400).json({ error: "Kullanıcı bulunamadı" });
     }
 
-    if (!user.role.includes("admin") && !user.role.includes("owner")) {
+    if (!user.role.includes("majorAdmin")) {
       return res.status(400).json({ error: "Kullanıcı yönetici değil" });
     }
 
-    user.role.pull("admin");
+    user.role.pull("majorAdmin");
     await user.save();
     return res.status(200).json({ message: "kullanıcı artık yönetici değil" });
   } catch (error) {
@@ -754,4 +483,59 @@ exports.updateUserPassword = async (req, res) => {
       error,
     });
   }
+};
+
+//* change user email
+
+//* upgrade to admin
+
+exports.upgradeToCompanyAdmin = async (req, res) => {
+  try {
+    const id = req.params.id; // userId meant to be admin
+    if (!id) {
+      return res.status(400).json({
+        error: "kimlik/id gerekli",
+      });
+    }
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res
+        .status(401)
+        .json({ error: "kullanıcı kimliği/id geçerli değil" });
+    }
+
+    const companyCode = req.body.companyCode;
+
+    if (!companyCode) {
+      return res.status(400).json({
+        error: "companyCode gerekli",
+      });
+    }
+
+    //const existedUser = await User.findById(id).exec();
+
+    const companyMember = await User.findOne({ _id: id, companyCode }).exec();
+    if (!companyMember) {
+      return res.status(401).json({ error: "grup üyesi mevcut değil" });
+    }
+
+    await companyCode.role.push("admin");
+    await companyMember.save();
+    return res.status(200).json({ error: "üye yöneticiliğe yükseltildi" });
+  } catch (error) {
+    return res.status(500).json({
+      error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+      error,
+    });
+  }
+};
+
+exports.degradeToCompanyUser = async (req, res) => {
+  // try {
+  // } catch (error) {
+  //   return res.status(500).json({
+  //     error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+  //     error,
+  //   });
+  // }
 };

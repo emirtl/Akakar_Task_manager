@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
-    username: { type: String, minLength: 6 },
+    fullName: { type: String, required: true },
     email: {
       type: String,
       required: true,
@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema(
     address: {
       type: String,
     },
-    phone: { type: String },
+    phone: { type: String, required: true },
     role: {
       type: [
         {
