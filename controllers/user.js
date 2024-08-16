@@ -356,6 +356,65 @@ exports.deleteUserByMajor = async (req, res) => {
   }
 };
 
+exports.deleteCompanyMember = async (req, res) => {
+  const id = req.params.id; // userId to be deleted
+
+  if (!id) {
+    return res.status(400).json({ error: "kullanıcı kimliği/id gerekli" });
+  }
+
+  if (!mongoose.isValidObjectId(id)) {
+    return res
+      .status(400)
+      .json({ error: "kullanıcı kimliği/id geçerli değil" });
+  }
+
+  const companyCode = req.body.companyCode;
+
+  if (!companyCode) {
+    return res.status(400).json({
+      error: "companyCode gerekli",
+    });
+  }
+
+  const companyOwner = await User.findOne({
+    _id: req.userId,
+    companyCode,
+    role: "owner",
+  });
+  if (!companyOwner) {
+    return res.status(401).json({ error: "yetkili değilsin" });
+  }
+
+  if (companyOwner.companyCode != companyCode) {
+    return res.status(401).json({ error: "yanlış şirket kodu" });
+  }
+
+  const deletedUser = await User.findByIdAndDelete(id).exec();
+  if (!deletedUser) {
+    return res.status(500).json({
+      error:
+        "kullanıcı silme işlemi başarısız oldu. lütfen daha sonra tekrar deneyin",
+    });
+  }
+
+  if (deletedUser.role.includes("employee")) {
+    await User.updateMany(
+      { referals: { $in: [deletedUser._id] } },
+      { $pull: { referals: deletedUser._id } }
+    );
+
+    const deletedUserTasks = await Task.find({
+      user: deletedUser._id,
+    }).exec();
+
+    deletedUserTasks.map(async (task) => {
+      await Task.findByIdAndDelete(task._id);
+    });
+  }
+  return res.status(200).json({ message: "kullanıcı silindi" });
+};
+
 //* ----- owner -----
 //* upgradeToMajorAdmin
 
@@ -485,8 +544,6 @@ exports.updateUserPassword = async (req, res) => {
   }
 };
 
-//* change user email
-
 //* upgrade to admin
 
 exports.upgradeToCompanyAdmin = async (req, res) => {
@@ -512,6 +569,15 @@ exports.upgradeToCompanyAdmin = async (req, res) => {
       });
     }
 
+    const companyOwner = await User.findOne({
+      _id: req.userId,
+      companyCode,
+      role: "owner",
+    });
+    if (!companyOwner) {
+      return res.status(401).json({ error: "yetkili değilsin" });
+    }
+
     //const existedUser = await User.findById(id).exec();
 
     const companyMember = await User.findOne({ _id: id, companyCode }).exec();
@@ -519,7 +585,7 @@ exports.upgradeToCompanyAdmin = async (req, res) => {
       return res.status(401).json({ error: "grup üyesi mevcut değil" });
     }
 
-    await companyCode.role.push("admin");
+    await companyMember.role.push("admin");
     await companyMember.save();
     return res.status(200).json({ error: "üye yöneticiliğe yükseltildi" });
   } catch (error) {
@@ -531,11 +597,52 @@ exports.upgradeToCompanyAdmin = async (req, res) => {
 };
 
 exports.degradeToCompanyUser = async (req, res) => {
-  // try {
-  // } catch (error) {
-  //   return res.status(500).json({
-  //     error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
-  //     error,
-  //   });
-  // }
+  try {
+    const id = req.params.id; // admin userID meant to be normal user
+    if (!id) {
+      return res.status(400).json({
+        error: "kimlik/id gerekli",
+      });
+    }
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res
+        .status(401)
+        .json({ error: "kullanıcı kimliği/id geçerli değil" });
+    }
+
+    const companyCode = req.body.companyCode;
+
+    if (!companyCode) {
+      return res.status(400).json({
+        error: "companyCode gerekli",
+      });
+    }
+
+    const companyOwner = await User.findOne({
+      _id: req.userId,
+      companyCode,
+      role: "owner",
+    });
+    if (!companyOwner) {
+      return res.status(401).json({ error: "yetkili değilsin" });
+    }
+
+    const companyAdmin = await User.findOne({ _id: id, companyCode }).exec();
+    if (!companyAdmin) {
+      return res.status(401).json({ error: "grup üyesi mevcut değil" });
+    }
+    if (!companyAdmin.role.includes("admin")) {
+      return res.status(401).json({ error: "kullanıcı yönetici değil" });
+    }
+
+    await companyAdmin.role.pop("admin");
+    await companyAdmin.save();
+    return res.status(200).json({ error: "kullanıcı artık yönetici değil" });
+  } catch (error) {
+    return res.status(500).json({
+      error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+      error,
+    });
+  }
 };

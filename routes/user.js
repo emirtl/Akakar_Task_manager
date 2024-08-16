@@ -10,27 +10,22 @@ const isAdmin = require("../middlewares/isAdmin");
 const isOwner = require("../middlewares/isOwner");
 const isEmployer = require("../middlewares/isEmployer");
 const isMajorOwner = require("../middlewares/isMajorOwner");
+const isMajorAdmin = require("../middlewares/isMajorAdmin");
 
-router.get("/getAll", isAuth, isAdmin, controller.users);
-
-router.get(
-  "/getAll-companyUsers/:companyCode",
-  isAuth,
-  controller.getAllCompanyUsers
-); // TODO: minor admin middleware to be added
-
-router.get("/user/:id", isAuth, controller.user);
+router.get("/getAll", isAuth, isMajorAdmin, controller.users);
 
 router.post("/register", userRegistrationValidation, controller.register); //TODO to be deleted
 
 router.post("/login", controller.login);
 
-// router.post(
-//   "/inviteEmployee/:id",
-//   isAuth,
-//   isEmployer,
-//   controller.inviteEmployee
-// );
+router.get(
+  "/getAll-companyUsers/:companyCode",
+  isAuth,
+  isAdmin,
+  controller.getAllCompanyUsers
+); // TODO: minor admin middleware to be added
+
+router.get("/user/:id", isAuth, controller.user);
 
 router.put(
   "/upgrade-to-majorAdmin/:id",
@@ -47,31 +42,37 @@ router.put(
 );
 
 router.put(
-  "/upgrade-To-CompanyAdmin/:id",
+  "/upgrade-to-companyAdmin/:id",
+  isAuth,
   isOwner,
   controller.upgradeToCompanyAdmin
 );
 
 router.put(
-  "/degrade-To-CompanyAdmin/:id",
+  "/degrade-To-CompanyUser/:id",
+  isAuth,
   isOwner,
   controller.degradeToCompanyUser
 );
 
-router.delete("/delete/:id", isAuth, isEmployer, controller.deleteUserByMajor); //TODO needs to be change
+router.delete(
+  "/delete-companyMember/:id",
+  isAuth,
+  isAdmin,
+  controller.deleteCompanyMember
+);
+
+router.delete(
+  "/delete/:id",
+  isAuth,
+  isMajorOwner,
+  controller.deleteUserByMajor
+); //TODO needs to be change the authentication
 
 router.put("/change-password/:id", isAuth, controller.updateUserPassword);
 
 router.get("/verifiedAccount/:token", controller.verifiedAccount); //TODO to be deleted
 
-// router.get("/newVerifiedAccount/:token", controller.newVerifiedAccount); //*!  Should be as new verification account method
-
-// router.get("/employeeRegistration/:token", controller.employeeRegistration); //*!  Should be deleted
-
-// router.post(
-//   "/new-register",
-//   userRegistrationValidation,
-//   controller.newRegister
-// ); //*!  Should be as new register
-
 module.exports = router;
+
+// check deleted user group memeber with tasks

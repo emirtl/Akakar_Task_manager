@@ -23,7 +23,7 @@ module.exports = (req, res, next) => {
     req.userRole = decoadedToken.role;
     console.log(req.userRole);
 
-    next();
+    return next();
   } catch (err) {
     return res.status(401).json({ error: "Authorization Failed", err });
   }
