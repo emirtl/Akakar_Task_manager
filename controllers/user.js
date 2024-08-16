@@ -379,10 +379,11 @@ exports.deleteCompanyMember = async (req, res) => {
 
   const companyOwner = await User.findOne({
     _id: req.userId,
-    companyCode,
+    companyCode: companyCode,
     role: "owner",
   });
-  if (!companyOwner) {
+
+  if (companyOwner._id.toString() != req.userId.toString()) {
     return res.status(401).json({ error: "yetkili değilsin" });
   }
 

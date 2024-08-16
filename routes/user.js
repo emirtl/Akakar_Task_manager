@@ -23,7 +23,7 @@ router.get(
   isAuth,
   isAdmin,
   controller.getAllCompanyUsers
-); // TODO: minor admin middleware to be added
+);
 
 router.get("/user/:id", isAuth, controller.user);
 
@@ -65,13 +65,13 @@ router.delete(
 router.delete(
   "/delete/:id",
   isAuth,
-  isMajorOwner,
+  isMajorAdmin,
   controller.deleteUserByMajor
-); //TODO needs to be change the authentication
+);
 
 router.put("/change-password/:id", isAuth, controller.updateUserPassword);
 
-router.get("/verifiedAccount/:token", controller.verifiedAccount); //TODO to be deleted
+router.get("/verifiedAccount/:token", controller.verifiedAccount);
 
 module.exports = router;
 
