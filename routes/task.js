@@ -1,6 +1,7 @@
 const express = require("express");
 
 const multer = require("multer");
+const isAdmin = require("../middlewares/isAdmin");
 
 const MIME_TYPE = {
   "image/jpg": "jpg",
@@ -30,7 +31,6 @@ const storage = multer.diskStorage({
 const router = express.Router();
 const controller = require("../controllers/task");
 const isAuth = require("../middlewares/isAuth");
-const isEmployer = require("../middlewares/isEmployer");
 
 router.get("/getAll", isAuth, controller.getAll);
 
@@ -39,18 +39,19 @@ router.get("/allTasksByUser/:id", isAuth, controller.allTasksByUser);
 router.post(
   "/insert",
   isAuth,
-  isEmployer,
+  isAdmin,
   multer({ storage, limits: { fieldSize: 2 * 1024 * 1024 } }).single("image"),
   controller.insert
 );
 
 router.put(
   "/update/:id",
-
+  isAuth,
+  isAdmin,
   multer({ storage, limits: { fieldSize: 2 * 1024 * 1024 } }).single("image"),
   controller.update
 );
 
-router.delete("/delete/:id", isAuth, isEmployer, controller.delete);
+router.delete("/delete/:id", isAuth, isAdmin, controller.delete);
 
 module.exports = router;

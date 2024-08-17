@@ -83,10 +83,12 @@ exports.insert = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const { title, description, status, date, user, priority, rate } = req.body;
-    const allowedStatuses = ["incomplete", "in progress", "completed"];
+    if (status) {
+      const allowedStatuses = ["incomplete", "in progress", "completed"];
 
-    if (!allowedStatuses.includes(status)) {
-      return res.status(400).json({ error: "wrong status value" });
+      if (!allowedStatuses.includes(status)) {
+        return res.status(400).json({ error: "wrong status value" });
+      }
     }
     const taskId = req.params.id;
     if (!taskId) {
@@ -174,7 +176,9 @@ exports.allTasksByUser = async (req, res) => {
       return res.status(400).json({ error: "task id is not valid" });
     }
 
-    const tasks = await Task.find({ user: id }).exec();
+    const tasks = await Task.find({ user: id })
+      .populate("user", "-password")
+      .exec();
 
     if (!tasks) {
       return res

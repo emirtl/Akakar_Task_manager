@@ -8,7 +8,6 @@ const {
 const isAuth = require("../middlewares/isAuth");
 const isAdmin = require("../middlewares/isAdmin");
 const isOwner = require("../middlewares/isOwner");
-const isEmployer = require("../middlewares/isEmployer");
 const isMajorOwner = require("../middlewares/isMajorOwner");
 const isMajorAdmin = require("../middlewares/isMajorAdmin");
 
