@@ -31,7 +31,7 @@ exports.register = async (req, res) => {
       companyCode,
     } = req.body;
 
-    if (!fullName || !email || !password) {
+    if (!role || !fullName || !email || !password) {
       return res.status(401).json({ error: "doğrulama başarısız" });
     }
 
