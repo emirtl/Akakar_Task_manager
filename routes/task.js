@@ -1,5 +1,5 @@
 const express = require("express");
-
+const path = require("path");
 const multer = require("multer");
 const isAdmin = require("../middlewares/isAdmin");
 
@@ -16,8 +16,11 @@ const storage = multer.diskStorage({
     if (isValid) {
       error = null;
     }
-    cb(error, "public/uploads");
+    cb(error, path.join(__dirname, "../", "public/uploads"));
   },
+
+  //  cb(error, "public/uploads");
+  //  path.join(__dirname, 'public/uploads')
   filename: (req, file, cb) => {
     const name = `${file.originalname.toLocaleLowerCase().split(".")[0]}`;
     const uniqueSuffix = `${file.fieldname}-${Date.now()}-${Math.round(
