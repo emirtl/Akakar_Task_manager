@@ -52,6 +52,7 @@ exports.insert = async (req, res) => {
       imagePath = `${req.protocol}://${req.get("host")}/public/uploads/${
         req.file.filename
       }`;
+      console.log("imagePath", imagePath);
     } else {
       imagePath = "";
     }
