@@ -8,14 +8,14 @@ const {
 const isAuth = require("../middlewares/isAuth");
 const isAdmin = require("../middlewares/isAdmin");
 const isOwner = require("../middlewares/isOwner");
-const isMajorOwner = require("../middlewares/isMajorOwner");
-const isMajorAdmin = require("../middlewares/isMajorAdmin");
-
-router.get("/getAll", isAuth, isMajorAdmin, controller.users);
+const isAdminMajor = require("../middlewares/isAdminMajor");
+const isOwnerMajor = require("../middlewares/isOwnerMajor");
 
 router.post("/register", userRegistrationValidation, controller.register); //TODO to be deleted
 
 router.post("/login", controller.login);
+
+router.get("/getAll", isAuth, isAdminMajor, controller.users);
 
 router.get(
   "/getAll-companyUsers/:companyCode",
@@ -29,14 +29,14 @@ router.get("/user/:id", isAuth, controller.user);
 router.put(
   "/upgrade-to-majorAdmin/:id",
   isAuth,
-  isMajorOwner,
+  isOwnerMajor,
   controller.upgradeToMajorAdmin
 );
 
 router.put(
   "/degrade-to-user/:id",
   isAuth,
-  isMajorOwner,
+  isOwnerMajor,
   controller.degradeMajorAdminToUser
 );
 
@@ -64,7 +64,7 @@ router.delete(
 router.delete(
   "/delete/:id",
   isAuth,
-  isMajorAdmin,
+  isAdminMajor,
   controller.deleteUserByMajor
 );
 
