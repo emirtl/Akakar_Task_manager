@@ -6,6 +6,8 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const mongoose = require("mongoose");
 const crypto = require("crypto");
+const { removeFile } = require("../middlewares/unlink");
+const path = require("path");
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
@@ -29,6 +31,7 @@ exports.register = async (req, res) => {
       phone,
       role,
       companyCode,
+      companyName,
     } = req.body;
 
     if (!role || !fullName || !email || !password) {
@@ -66,10 +69,16 @@ exports.register = async (req, res) => {
       province,
       address,
       phone,
+      companyName,
       role: [role],
     });
 
     if (role == "owner") {
+      if (!companyName) {
+        return res.status(404).json({
+          error: "şirket adı gerekli",
+        });
+      }
       const randomValueHex = (len) => {
         return crypto
           .randomBytes(Math.ceil(len / 2))
@@ -219,6 +228,7 @@ exports.login = async (req, res) => {
       fullName: existedUser.fullName,
       email: existedUser.email,
       role: existedUser.role,
+      companyCode: existedUser.companyCode,
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -647,3 +657,225 @@ exports.degradeToCompanyUser = async (req, res) => {
     });
   }
 };
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const email = req.body.email;
+    if (!email) {
+      return res.status(400).json({
+        error: "email gerekli",
+      });
+    }
+
+    const existedUser = await User.findOne({ email }).exec();
+    if (!existedUser) {
+      return res.status(400).json({
+        error: "kullanıcı bulunamadı",
+      });
+    }
+
+    const payload = {
+      id: existedUser._id,
+      email: existedUser.email,
+    };
+
+    const token = jwt.sign(payload, process.env.FORGOT_PASSWORD_TOKEN, {
+      algorithm: "HS256",
+    });
+    console.log(token);
+
+    const mailOptions = {
+      from: {
+        name: "Akakar Task Manager",
+        address: process.env.EMAIL_USER,
+      },
+      to: existedUser.email,
+      subject: "şifre değiştirme",
+      text: `please click the link below to change your password
+          <a href="https://akakar-task-app-ccaef9101887.herokuapp.com/api/v1/users/verifiedAccount/${token}"></a>
+            `,
+    };
+
+    await transporter.sendMail(mailOptions, (err, info) => {
+      if (err) {
+        console.log(err);
+        return res.status(500).json({ error: err });
+      }
+      if (info) {
+        return res.status(200).json({
+          message: "we sent your email a link to change your password",
+        });
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+      error,
+    });
+  }
+};
+
+exports.forgotPasswordAction = async (req, res) => {
+  try {
+    const newPassword = req.body.currentPassword;
+    const confirmPassword = req.body.currentPassword;
+
+    if (newPassword != confirmPassword) {
+      return res.status(500).json({
+        error: "şifreler eşleşmiyor",
+      });
+    }
+
+    if (!email) {
+      return res.status(400).json({
+        error: "email gerekli",
+      });
+    }
+
+    const existedUser = await User.findOne({ email }).exec();
+    if (!existedUser) {
+      return res.status(400).json({
+        error: "kullanıcı bulunamadı",
+      });
+    }
+
+    const payload = {
+      id: existedUser._id,
+      email: existedUser.email,
+    };
+
+    const token = jwt.sign(payload, process.env.FORGOT_PASSWORD_TOKEN, {
+      algorithm: "HS256",
+    });
+    console.log(token);
+
+    const mailOptions = {
+      from: {
+        name: "Akakar Task Manager",
+        address: process.env.EMAIL_USER,
+      },
+      to: existedUser.email,
+      subject: "şifre değiştirme",
+      text: `please click the link below to change your password
+          <a href="https://akakar-task-app-ccaef9101887.herokuapp.com/api/v1/users/verifiedAccount/${token}"></a>
+            `,
+    };
+
+    await transporter.sendMail(mailOptions, (err, info) => {
+      if (err) {
+        console.log(err);
+        return res.status(500).json({ error: err });
+      }
+      if (info) {
+        return res.status(200).json({
+          message: "we sent your email a link to change your password",
+        });
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+      error,
+    });
+  }
+};
+
+exports.uploadUserImage = async (req, res) => {
+  try {
+    const id = req.params.id; //? user id
+    if (!id) {
+      return res.status(400).json({
+        error: "kimlik/id gerekli",
+      });
+    }
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res
+        .status(401)
+        .json({ error: "kullanıcı kimliği/id geçerli değil" });
+    }
+    const existedUser = await User.findById(id).exec();
+
+    if (!existedUser) {
+      return res.status(404).json({ error: "kullanıcı bulunamadı" });
+      //kullanıcı bulunamadı
+    }
+
+    if (!req.file) {
+      return res.status(500).json({
+        error: "kullanıcı resmi gerekli",
+      });
+    }
+
+    let userImagePath = `${req.protocol}://${req.get("host")}/public/uploads/${
+      req.file.filename
+    }`;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      { userImage: userImagePath },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(500).json({
+        error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+      });
+    }
+
+    return res.status(200).json({ updatedUser });
+  } catch (error) {
+    return res.status(500).json({
+      error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+      error,
+    });
+  }
+};
+
+// exports.removeUserImage = async (req, res) => {
+//   try {
+//     const id = req.params.id; //? user id
+//     if (!id) {
+//       return res.status(400).json({
+//         error: "kimlik/id gerekli",
+//       });
+//     }
+
+//     if (!mongoose.isValidObjectId(id)) {
+//       return res
+//         .status(401)
+//         .json({ error: "kullanıcı kimliği/id geçerli değil" });
+//     }
+//     const existedUser = await User.findById(id).exec();
+
+//     if (!existedUser) {
+//       return res.status(404).json({ error: "kullanıcı bulunamadı" });
+//       //kullanıcı bulunamadı
+//     }
+
+//     // const updatedUser = await User.findByIdAndUpdate(
+//     //   id,
+//     //   { userImage: "" },
+//     //   { new: true }
+//     // );
+
+//     // if (!updatedUser) {
+//     //   return res.status(500).json({
+//     //     error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+//     //   });
+//     // }
+//     const userImageName = existedUser.userImage.split("/")[5];
+
+//     const userImagePath = path.join("/public", "/uploads", userImageName);
+//     console.log("userImagePath", userImagePath);
+
+//     removeFile(userImagePath);
+
+//     return res.status(200).json({ message: "kullanıcı resmi silindi" });
+//   } catch (error) {
+//     return res.status(500).json({
+//       error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+//       error,
+//     });
+//   }
+// };

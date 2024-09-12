@@ -13,7 +13,11 @@ const userSchema = new mongoose.Schema(
       required: true,
       minLength: 8,
     },
+    userImage: { type: String },
+
     companyCode: { type: String },
+
+    companyName: { type: String },
 
     jobTitle: {
       type: String,
