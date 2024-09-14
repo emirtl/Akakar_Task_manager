@@ -229,6 +229,7 @@ exports.login = async (req, res) => {
       email: existedUser.email,
       role: existedUser.role,
       companyCode: existedUser.companyCode,
+      companyName: existedUser.companyName,
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
