@@ -109,6 +109,8 @@ router.delete(
 
 router.put("/change-password/:id", isAuth, controller.updateUserPassword);
 
+router.put("/update-user/:id", isAuth, controller.updateUser);
+
 router.post("/forgot-password", controller.forgotPassword);
 
 router.get("/verifiedAccount/:token", controller.verifiedAccount);

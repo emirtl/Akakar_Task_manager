@@ -833,6 +833,56 @@ exports.uploadUserImage = async (req, res) => {
   }
 };
 
+exports.updateUser = async (req, res) => {
+  const id = req.params.id; //?user id
+  const { fullName, phone, companyName, jobTitle, city, province, address } =
+    req.body;
+
+  if (!fullName || !phone) {
+    return res.status(400).json({
+      error: "fullName/phone gerekli",
+    });
+  }
+
+  if (!id) {
+    return res.status(400).json({
+      error: "kimlik/id gerekli",
+    });
+  }
+
+  if (!mongoose.isValidObjectId(id)) {
+    return res
+      .status(401)
+      .json({ error: "kullanıcı kimliği/id geçerli değil" });
+  }
+
+  if (req.userId.toString() !== id.toString()) {
+    return res.status(401).json({
+      error: "yetkili değil",
+    });
+  }
+
+  const existedUser = await User.findById(id).exec();
+
+  if (!existedUser) {
+    return res.status(404).json({ error: "kullanıcı bulunamadı" });
+    //kullanıcı bulunamadı
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    id,
+    { fullName, phone, companyName, province, city, address, jobTitle },
+    { new: true }
+  );
+
+  if (!updatedUser) {
+    return res.status(500).json({
+      error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+    });
+  }
+  return res.status(200).json({ updatedUser });
+};
+
 // exports.removeUserImage = async (req, res) => {
 //   try {
 //     const id = req.params.id; //? user id
