@@ -1,6 +1,6 @@
 const Task = require("../models/task");
 const User = require("../models/user");
-
+const io = require("socket.io")();
 const mongoose = require("mongoose");
 
 exports.getAll = async (req, res) => {
@@ -129,6 +129,7 @@ exports.update = async (req, res) => {
         .status(500)
         .json({ error: "updating task failed. please try later" });
     }
+    io.emit("taskUpdated", updatedTask);
 
     return res.status(200).json({ updatedTask });
   } catch (error) {

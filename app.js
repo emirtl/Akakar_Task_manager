@@ -5,6 +5,8 @@ const path = require("path");
 const cors = require("cors");
 require("dotenv").config();
 const app = express();
+const server = require("http").createServer(app);
+const io = require("socket.io")(server);
 
 //middlewares
 
@@ -23,6 +25,15 @@ main()
   .then(() => console.log("connected to mongoose"))
   .catch((err) => console.log(err));
 
+io.on("connection", (client) => {
+  client.on("event", (data) => {
+    /* … */
+  });
+  client.on("disconnect", () => {
+    /* … */
+  });
+});
+
 //routes
 const userRoutes = require("./routes/user");
 const taskRoutes = require("./routes/task");
@@ -32,6 +43,10 @@ app.use(`${process.env.API}/tasks`, taskRoutes);
 
 const PORT = process.env.PORT || 9000;
 
-app.listen(process.env.PORT, () => {
+// app.listen(process.env.PORT, () => {
+//   console.log(`connected to port ${PORT}`);
+// });
+
+server.listen(process.env.PORT, () => {
   console.log(`connected to port ${PORT}`);
 });
