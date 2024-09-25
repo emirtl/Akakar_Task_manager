@@ -596,6 +596,9 @@ exports.upgradeToCompanyAdmin = async (req, res) => {
     if (!companyMember) {
       return res.status(401).json({ error: "grup üyesi mevcut değil" });
     }
+    if (companyMember.role.includes("admin")) {
+      return res.status(401).json({ error: "kullanıcı zaten yönetici" });
+    }
 
     await companyMember.role.push("admin");
     await companyMember.save();
