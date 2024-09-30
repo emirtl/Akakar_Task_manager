@@ -40,6 +40,10 @@ const taskRoutes = require("./routes/task");
 
 app.use(`${process.env.API}/users`, userRoutes);
 app.use(`${process.env.API}/tasks`, taskRoutes);
+app.use((err, req, res, next) => {
+  // Handle the error
+  res.status(err.status || 500).json({ error: err.message });
+});
 
 const PORT = process.env.PORT || 9000;
 

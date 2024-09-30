@@ -787,6 +787,7 @@ exports.forgotPasswordAction = async (req, res) => {
 exports.uploadUserImage = async (req, res) => {
   try {
     const id = req.params.id; //? user id
+
     if (!id) {
       return res.status(400).json({
         error: "kimlik/id gerekli",
@@ -904,23 +905,32 @@ exports.updateUser = async (req, res) => {
 
 //     if (!existedUser) {
 //       return res.status(404).json({ error: "kullanıcı bulunamadı" });
-//       //kullanıcı bulunamadı
 //     }
 
-//     // const updatedUser = await User.findByIdAndUpdate(
-//     //   id,
-//     //   { userImage: "" },
-//     //   { new: true }
-//     // );
+//     const updatedUser = await User.findByIdAndUpdate(
+//       id,
+//       { userImage: "" },
+//       { new: true }
+//     );
 
-//     // if (!updatedUser) {
-//     //   return res.status(500).json({
-//     //     error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
-//     //   });
-//     // }
+//     if (!updatedUser) {
+//       return res.status(500).json({
+//         error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+//       });
+//     }
 //     const userImageName = existedUser.userImage.split("/")[5];
+//     console.log(userImageName);
 
-//     const userImagePath = path.join("/public", "/uploads", userImageName);
+//     // let imagePath = `${req.protocol}://${req.get(
+//     //   "host"
+//     // )}/public/uploads/${userImageName}`;
+
+//     const userImagePath = path.join(
+//       "../",
+//       "/public",
+//       "/uploads",
+//       userImageName
+//     );
 //     console.log("userImagePath", userImagePath);
 
 //     removeFile(userImagePath);
