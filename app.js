@@ -37,9 +37,12 @@ io.on("connection", (client) => {
 //routes
 const userRoutes = require("./routes/user");
 const taskRoutes = require("./routes/task");
+const elevatorRoutes = require("./routes/elevator");
 
 app.use(`${process.env.API}/users`, userRoutes);
 app.use(`${process.env.API}/tasks`, taskRoutes);
+app.use(`${process.env.API}/elevator`, elevatorRoutes);
+
 app.use((err, req, res, next) => {
   // Handle the error
   res.status(err.status || 500).json({ error: err.message });

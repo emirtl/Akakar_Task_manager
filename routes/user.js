@@ -56,12 +56,12 @@ router.get(
 
 router.get("/user/:id", isAuth, controller.user);
 
-router.put(
-  "/upload-userImage/:id",
-  isAuth,
-  multer({ storage }).single("userImage"),
-  controller.uploadUserImage
-);
+// router.put(
+//   "/upload-userImage/:id",
+//   isAuth,
+//   multer({ storage }).single("userImage"),
+//   controller.uploadUserImage
+// );
 
 // router.put("/remove-userImage/:id", isAuth, controller.removeUserImage);
 

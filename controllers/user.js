@@ -812,10 +812,14 @@ exports.uploadUserImage = async (req, res) => {
       });
     }
 
-    let userImagePath = `${req.protocol}://${req.get("host")}/public/uploads/${
-      req.file.filename
-    }`;
+    const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME; // Replace with your bucket name
+    const uploadResult = await uploadImageToGCS(req.file, bucketName);
+    console.log(uploadResult);
 
+    // let userImagePath = `${req.protocol}://${req.get("host")}/public/uploads/${
+    //   req.file.filename
+    // }`;
+    const userImagePath = uploadResult.publicUrl;
     const updatedUser = await User.findByIdAndUpdate(
       id,
       { userImage: userImagePath },
@@ -836,6 +840,33 @@ exports.uploadUserImage = async (req, res) => {
     });
   }
 };
+
+// gcs changes :
+// rem,ember to aadd environmebts to heroiku too
+
+async function uploadImageToGCS(imageFile, bucketName) {
+  const storage = require("../gcs/gcs"); // Import GCS instance
+  const originalFileName = imageFile.originalname;
+  const uniqueFileName = `${Date.now()}-${originalFileName}`;
+
+  const bucket = storage.bucket(bucketName); //removed make public fn
+  const file = bucket.file(uniqueFileName);
+
+  const stream = file.createWriteStream({
+    metadata: {
+      contentType: imageFile.mimetype,
+    },
+  });
+
+  return new Promise((resolve, reject) => {
+    stream.on("error", (err) => reject(err));
+    stream.on("finish", async () => {
+      const publicUrl = `https://storage.googleapis.com/${bucketName}/${uniqueFileName}`;
+      resolve({ publicUrl });
+    });
+    stream.end(imageFile.buffer);
+  });
+}
 
 exports.updateUser = async (req, res) => {
   const id = req.params.id; //?user id
