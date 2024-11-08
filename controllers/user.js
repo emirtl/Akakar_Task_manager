@@ -812,14 +812,14 @@ exports.uploadUserImage = async (req, res) => {
       });
     }
 
-    const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME; // Replace with your bucket name
-    const uploadResult = await uploadImageToGCS(req.file, bucketName);
-    console.log(uploadResult);
+    // const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME; // Replace with your bucket name
+    // const uploadResult = await uploadImageToGCS(req.file, bucketName);
+    // console.log(uploadResult);
 
-    // let userImagePath = `${req.protocol}://${req.get("host")}/public/uploads/${
-    //   req.file.filename
-    // }`;
-    const userImagePath = uploadResult.publicUrl;
+    let userImagePath = `${req.protocol}://${req.get("host")}/public/uploads/${
+      req.file.filename
+    }`;
+    // const userImagePath = uploadResult.publicUrl;
     const updatedUser = await User.findByIdAndUpdate(
       id,
       { userImage: userImagePath },
@@ -844,29 +844,29 @@ exports.uploadUserImage = async (req, res) => {
 // gcs changes :
 // rem,ember to aadd environmebts to heroiku too
 
-async function uploadImageToGCS(imageFile, bucketName) {
-  const storage = require("../gcs/gcs"); // Import GCS instance
-  const originalFileName = imageFile.originalname;
-  const uniqueFileName = `${Date.now()}-${originalFileName}`;
+// async function uploadImageToGCS(imageFile, bucketName) {
+//   const storage = require("../gcs/gcs"); // Import GCS instance
+//   const originalFileName = imageFile.originalname;
+//   const uniqueFileName = `${Date.now()}-${originalFileName}`;
 
-  const bucket = storage.bucket(bucketName); //removed make public fn
-  const file = bucket.file(uniqueFileName);
+//   const bucket = storage.bucket(bucketName); //removed make public fn
+//   const file = bucket.file(uniqueFileName);
 
-  const stream = file.createWriteStream({
-    metadata: {
-      contentType: imageFile.mimetype,
-    },
-  });
+//   const stream = file.createWriteStream({
+//     metadata: {
+//       contentType: imageFile.mimetype,
+//     },
+//   });
 
-  return new Promise((resolve, reject) => {
-    stream.on("error", (err) => reject(err));
-    stream.on("finish", async () => {
-      const publicUrl = `https://storage.googleapis.com/${bucketName}/${uniqueFileName}`;
-      resolve({ publicUrl });
-    });
-    stream.end(imageFile.buffer);
-  });
-}
+//   return new Promise((resolve, reject) => {
+//     stream.on("error", (err) => reject(err));
+//     stream.on("finish", async () => {
+//       const publicUrl = `https://storage.googleapis.com/${bucketName}/${uniqueFileName}`;
+//       resolve({ publicUrl });
+//     });
+//     stream.end(imageFile.buffer);
+//   });
+// }
 
 exports.updateUser = async (req, res) => {
   const id = req.params.id; //?user id
@@ -918,59 +918,58 @@ exports.updateUser = async (req, res) => {
   return res.status(200).json({ updatedUser });
 };
 
-// exports.removeUserImage = async (req, res) => {
-//   try {
-//     const id = req.params.id; //? user id
-//     if (!id) {
-//       return res.status(400).json({
-//         error: "kimlik/id gerekli",
-//       });
-//     }
+exports.removeUserImage = async (req, res) => {
+  try {
+    const id = req.params.id; //? user id
+    if (!id) {
+      return res.status(400).json({
+        error: "kimlik/id gerekli",
+      });
+    }
 
-//     if (!mongoose.isValidObjectId(id)) {
-//       return res
-//         .status(401)
-//         .json({ error: "kullanıcı kimliği/id geçerli değil" });
-//     }
-//     const existedUser = await User.findById(id).exec();
+    if (!mongoose.isValidObjectId(id)) {
+      return res
+        .status(401)
+        .json({ error: "kullanıcı kimliği/id geçerli değil" });
+    }
+    const existedUser = await User.findById(id).exec();
 
-//     if (!existedUser) {
-//       return res.status(404).json({ error: "kullanıcı bulunamadı" });
-//     }
+    if (!existedUser) {
+      return res.status(404).json({ error: "kullanıcı bulunamadı" });
+    }
 
-//     const updatedUser = await User.findByIdAndUpdate(
-//       id,
-//       { userImage: "" },
-//       { new: true }
-//     );
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      { userImage: "" },
+      { new: true }
+    );
 
-//     if (!updatedUser) {
-//       return res.status(500).json({
-//         error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
-//       });
-//     }
-//     const userImageName = existedUser.userImage.split("/")[5];
-//     console.log(userImageName);
+    if (!updatedUser) {
+      return res.status(500).json({
+        error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+      });
+    }
+    // const userImageName = existedUser.userImage.split("/")[5];
 
-//     // let imagePath = `${req.protocol}://${req.get(
-//     //   "host"
-//     // )}/public/uploads/${userImageName}`;
+    // let imagePath = `${req.protocol}://${req.get(
+    //   "host"
+    // )}/public/uploads/${userImageName}`;
 
-//     const userImagePath = path.join(
-//       "../",
-//       "/public",
-//       "/uploads",
-//       userImageName
-//     );
-//     console.log("userImagePath", userImagePath);
+    // const userImagePath = path.join(
+    //   "../",
+    //   "/public",
+    //   "/uploads",
+    //   userImageName
+    // );
+    // console.log("userImagePath", userImagePath);
 
-//     removeFile(userImagePath);
+    // removeFile(userImagePath);
 
-//     return res.status(200).json({ message: "kullanıcı resmi silindi" });
-//   } catch (error) {
-//     return res.status(500).json({
-//       error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
-//       error,
-//     });
-//   }
-// };
+    return res.status(200).json({ message: "kullanıcı resmi silindi" });
+  } catch (error) {
+    return res.status(500).json({
+      error: "bir şeyler yanlış gitti. lütfen daha sonra tekrar deneyin",
+      error,
+    });
+  }
+};
